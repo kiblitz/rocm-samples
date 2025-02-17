@@ -1,0 +1,12 @@
+(executable
+ (public_name rocml)
+ (name main)
+ (libraries core ctypes ctypes.foreign ppxlib rocml)
+ (preprocess
+  (pps my_ppx ppx_jane)))
+
+(rule
+ (targets vectoradd_hip.so)
+ (deps Makefile vectoradd_hip.cpp vectoradd_hip.hpp)
+ (action
+  (run make)))
