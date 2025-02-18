@@ -21,14 +21,14 @@
 #define THREADS_PER_BLOCK_Z  1
 
 __global__ void 
-vectoradd_float(float* __restrict__ a, const float* __restrict__ b, const float* __restrict__ c, int width, int height) 
+vectoradd_float(const float* __restrict__ a, const float* __restrict__ b, float* __restrict__ c, int width, int height) 
   {
       int x = hipBlockDim_x * hipBlockIdx_x + hipThreadIdx_x;
       int y = hipBlockDim_y * hipBlockIdx_y + hipThreadIdx_y;
 
       int i = y * width + x;
       if ( i < (width * height)) {
-        a[i] = b[i] + c[i];
+        c[i] = a[i] + b[i];
       }
   }
 
@@ -46,7 +46,61 @@ __kernel__ void vectoradd_float(float* a, const float* b, const float* c, int wi
 
 using namespace std;
 
-extern "C" int f() {
+extern "C" int f(float* inputA, float* inputB, float* result) {
+  float* hostA = inputA;
+  float* hostB = inputB;
+  float* hostC = result;
+
+  float* deviceA;
+  float* deviceB;
+  float* deviceC;
+
+  hipDeviceProp_t devProp;
+  HIP_ASSERT(hipGetDeviceProperties(&devProp, 0));
+  cout << " System minor " << devProp.minor << endl;
+  cout << " System major " << devProp.major << endl;
+  cout << " agent prop name " << devProp.name << endl;
+  cout << "hip Device prop succeeded " << endl ;
+  
+  HIP_ASSERT(hipMalloc((void**)&deviceA, NUM * sizeof(float)));
+  HIP_ASSERT(hipMalloc((void**)&deviceB, NUM * sizeof(float)));
+  HIP_ASSERT(hipMalloc((void**)&deviceC, NUM * sizeof(float)));
+  
+  HIP_ASSERT(hipMemcpy(deviceA, hostA, NUM*sizeof(float), hipMemcpyHostToDevice));
+  HIP_ASSERT(hipMemcpy(deviceB, hostB, NUM*sizeof(float), hipMemcpyHostToDevice));
+
+  vectoradd_float<<<
+     dim3(WIDTH/THREADS_PER_BLOCK_X, HEIGHT/THREADS_PER_BLOCK_Y),
+     dim3(THREADS_PER_BLOCK_X, THREADS_PER_BLOCK_Y),
+     0, 0
+  >>>(deviceA, deviceB, deviceC, WIDTH, HEIGHT);
+
+  HIP_ASSERT(hipMemcpy(hostC, deviceC, NUM*sizeof(float), hipMemcpyDeviceToHost));
+
+  // verify the results
+  int errors = 0;
+
+  for (int i = 0; i < NUM; i++) {
+    // cout << hostA[i] << "; " << hostB[i] << "; " << hostC[i] << endl;
+    if (hostC[i] != (hostA[i] + hostB[i])) {
+      errors++;
+    }
+  }
+  if (errors!=0) {
+    printf("FAILED: %d errors\n",errors);
+  } else {
+      printf ("PASSED!\n");
+  }
+
+  HIP_ASSERT(hipFree(deviceA));
+  HIP_ASSERT(hipFree(deviceB));
+  HIP_ASSERT(hipFree(deviceC));
+
+  return errors;
+}
+
+
+extern "C" int g() {
   float* hostA;
   float* hostB;
   float* hostC;
