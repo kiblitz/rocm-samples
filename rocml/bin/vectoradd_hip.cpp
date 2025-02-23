@@ -46,7 +46,9 @@ __kernel__ void vectoradd_float(float* a, const float* b, const float* c, int wi
 
 using namespace std;
 
-extern "C" int f(float* inputA, float* inputB, float* result) {
+extern "C" int f(float* inputA, float* inputB, float* result, int width, int height) {
+  const int num = width * height;
+
   float* hostA = inputA;
   float* hostB = inputB;
   float* hostC = result;
@@ -61,26 +63,27 @@ extern "C" int f(float* inputA, float* inputB, float* result) {
   cout << " System major " << devProp.major << endl;
   cout << " agent prop name " << devProp.name << endl;
   cout << "hip Device prop succeeded " << endl ;
+  cout << " width " << width << " ; height " << height << endl;
   
-  HIP_ASSERT(hipMalloc((void**)&deviceA, NUM * sizeof(float)));
-  HIP_ASSERT(hipMalloc((void**)&deviceB, NUM * sizeof(float)));
-  HIP_ASSERT(hipMalloc((void**)&deviceC, NUM * sizeof(float)));
+  HIP_ASSERT(hipMalloc((void**)&deviceA, num * sizeof(float)));
+  HIP_ASSERT(hipMalloc((void**)&deviceB, num * sizeof(float)));
+  HIP_ASSERT(hipMalloc((void**)&deviceC, num * sizeof(float)));
   
-  HIP_ASSERT(hipMemcpy(deviceA, hostA, NUM*sizeof(float), hipMemcpyHostToDevice));
-  HIP_ASSERT(hipMemcpy(deviceB, hostB, NUM*sizeof(float), hipMemcpyHostToDevice));
+  HIP_ASSERT(hipMemcpy(deviceA, hostA, num*sizeof(float), hipMemcpyHostToDevice));
+  HIP_ASSERT(hipMemcpy(deviceB, hostB, num*sizeof(float), hipMemcpyHostToDevice));
 
   vectoradd_float<<<
-     dim3(WIDTH/THREADS_PER_BLOCK_X, HEIGHT/THREADS_PER_BLOCK_Y),
+     dim3(width/THREADS_PER_BLOCK_X, HEIGHT/THREADS_PER_BLOCK_Y),
      dim3(THREADS_PER_BLOCK_X, THREADS_PER_BLOCK_Y),
      0, 0
-  >>>(deviceA, deviceB, deviceC, WIDTH, HEIGHT);
+  >>>(deviceA, deviceB, deviceC, width, height);
 
-  HIP_ASSERT(hipMemcpy(hostC, deviceC, NUM*sizeof(float), hipMemcpyDeviceToHost));
+  HIP_ASSERT(hipMemcpy(hostC, deviceC, num*sizeof(float), hipMemcpyDeviceToHost));
 
   // verify the results
   int errors = 0;
 
-  for (int i = 0; i < NUM; i++) {
+  for (int i = 0; i < num; i++) {
     // cout << hostA[i] << "; " << hostB[i] << "; " << hostC[i] << endl;
     if (hostC[i] != (hostA[i] + hostB[i])) {
       errors++;
