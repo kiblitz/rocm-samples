@@ -5,8 +5,7 @@ module rec Expression : sig
     | Identifier of Identifier.t
     | Constant of Constant.t
     | Assign of
-        { ident : Identifier.t
-        ; assignment : Expression.t
+        { assignments : Assignment.t list
         ; within_scope : Expression.t
         }
     | Apply of
@@ -19,7 +18,8 @@ module rec Expression : sig
         ; else_ : Expression.t option
         }
     | For of
-        { from : Expression.t
+        { ident : Identifier.t
+        ; from : Expression.t
         ; to_ : Expression.t
         ; body : Expression.t
         ; direction : Direction.t
@@ -28,14 +28,19 @@ module rec Expression : sig
         { condition : Expression.t
         ; body : Expression.t
         }
-    | Arr_update of
-        { ident : Identifier.t
-        ; value : Identifier.t
-        }
     | Sequence of
         { this : Expression.t
         ; next : Expression.t
         }
+  [@@deriving sexp_of]
+end
+
+and Assignment : sig
+  type t =
+    { ident : Identifier.t
+    ; value : Expression.t
+    }
+  [@@deriving sexp_of]
 end
 
 and Arg : sig
@@ -44,16 +49,18 @@ and Arg : sig
       | Unnamed
       | Labelled of string
       | Optional of string
+    [@@deriving sexp_of]
   end
 
   type t =
     { label : Label.t
     ; expression : Expression.t
     }
+  [@@deriving sexp_of]
 end
 
 and Identifier : sig
-  type t = { name : string }
+  type t = { name : string } [@@deriving sexp_of]
 end
 
 and Constant : sig
@@ -61,12 +68,14 @@ and Constant : sig
     | Bool of bool
     | Int of int
     | Float of float
+  [@@deriving sexp_of]
 end
 
 and Direction : sig
   type t =
     | Up
     | Down
+  [@@deriving sexp_of]
 end
 
 module Func_arg : sig
@@ -76,12 +85,14 @@ module Func_arg : sig
       | Int
       | Float
       | Array of t
+    [@@deriving sexp_of]
   end
 
   type t =
     { ident : Identifier.t
     ; type_ : Type.t
     }
+  [@@deriving sexp_of]
 end
 
 type t =

@@ -1,15 +1,16 @@
 open! Core
 
-module rec Expression : sig
+module%gen rec Expression : sig
   type t =
     | Identifier of Identifier.t
     | Constant of Constant.t
     | Assign of
-        { ident : Identifier.t
-        ; assignment : Expression.t
+        { assignments : Assignment.t list
         ; within_scope : Expression.t
         }
     | Apply of
+        (* TODO infix *)
+        
         { f : t
         ; args : Arg.t list
         }
@@ -19,7 +20,8 @@ module rec Expression : sig
         ; else_ : Expression.t option
         }
     | For of
-        { from : Expression.t
+        { ident : Identifier.t
+        ; from : Expression.t
         ; to_ : Expression.t
         ; body : Expression.t
         ; direction : Direction.t
@@ -28,10 +30,6 @@ module rec Expression : sig
         { condition : Expression.t
         ; body : Expression.t
         }
-    | Arr_update of
-        { ident : Identifier.t
-        ; value : Identifier.t
-        }
     | Sequence of
         { this : Expression.t
         ; next : Expression.t
@@ -39,6 +37,15 @@ module rec Expression : sig
   [@@deriving sexp_of]
 end =
   Expression
+
+and Assignment : sig
+  type t =
+    { ident : Identifier.t
+    ; value : Expression.t
+    }
+  [@@deriving sexp_of]
+end =
+  Assignment
 
 and Arg : sig
   module Label : sig

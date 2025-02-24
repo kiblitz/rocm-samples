@@ -30,7 +30,11 @@ let init_carray ~f =
   carray
 ;;
 
-let[@kernel] g (x : _) (y : _) = x + y
+let[@kernel] g (x : _) (y : _) =
+  let x = x * 2
+  and y = y * 3 in
+  x + y
+;;
 
 let main () =
   let z = g 2 3 in
